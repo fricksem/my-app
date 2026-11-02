@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>График работы — Клещенко Илья</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-800 min-h-screen pb-20">
+
+    <!-- Header -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-2xl mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                    <i class="fa-solid fa-calendar-days text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base md:text-lg leading-tight">Клещенко Илья М.</h1>
+                    <p class="text-xs text-indigo-200">Таб. №: 44068 | AV_IT_GSM</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="openImportModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-medium transition flex items-center space-x-1.5 border border-indigo-400/40">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span class="hidden sm:inline">Импорт / Viber</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-2xl mx-auto px-4 mt-4 space-y-4">
+
+        <!-- Date & Month Selector Card -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div class="flex items-center space-x-2 w-full sm:w-auto">
+                <button onclick="changeMonth(-1)" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="flex-1 sm:flex-none flex gap-2">
+                    <select id="monthSelect" onchange="onDateSelectorChange()" class="bg-slate-50 border border-slate-200 font-bold text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none w-full sm:w-auto">
+                        <option value="0">Январь</option>
+                        <option value="1">Февраль</option>
+                        <option value="2">Март</option>
+                        <option value="3">Апрель</option>
+                        <option value="4">Май</option>
+                        <option value="5">Июнь</option>
+                        <option value="6">Июль</option>
+                        <option value="7">Август</option>
+                        <option value="8">Сентябрь</option>
+                        <option value="9">Октябрь</option>
+                        <option value="10">Ноябрь</option>
+                        <option value="11">Декабрь</option>
+                    </select>
+                    <select id="yearSelect" onchange="onDateSelectorChange()" class="bg-slate-50 border border-slate-200 font-bold text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <!-- Filled by JS -->
+                    </select>
+                </div>
+                <button onclick="changeMonth(1)" class="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-600 transition">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                <button onclick="openGenerateModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-medium transition flex items-center space-x-1">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-500"></i>
+                    <span>Шаблон (2/2)</span>
+                </button>
+                <button onclick="resetCurrentMonth()" class="text-xs text-rose-600 hover:bg-rose-50 px-2.5 py-2 rounded-lg font-medium transition" title="Сбросить месяц">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Overview Card -->
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 mb-1 font-medium">Всего часов</p>
+                <p class="text-lg md:text-xl font-black text-indigo-600" id="statTotalHours">0.0 <span class="text-xs font-normal">ч</span></p>
+            </div>
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 mb-1 font-medium">Смен</p>
+                <p class="text-lg md:text-xl font-black text-emerald-600" id="statWorkDays">0</p>
+            </div>
+            <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+                <p class="text-xs text-slate-500 mb-1 font-medium">Выходных</p>
+                <p class="text-lg md:text-xl font-black text-amber-600" id="statOffDays">0</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex gap-2">
+            <button onclick="setFilter('all')" id="btn-filter-all" class="filter-btn flex-1 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white shadow">
+                Все дни
+            </button>
+            <button onclick="setFilter('work')" id="btn-filter-work" class="filter-btn flex-1 py-2 text-xs font-semibold rounded-xl bg-white text-slate-600 border border-slate-200">
+                Смены
+            </button>
+            <button onclick="setFilter('off')" id="btn-filter-off" class="filter-btn flex-1 py-2 text-xs font-semibold rounded-xl bg-white text-slate-600 border border-slate-200">
+                Выходные
+            </button>
+        </div>
+
+        <!-- Schedule Cards List -->
+        <div id="scheduleContainer" class="space-y-2.5">
+            <!-- Dynamic Schedule Injection -->
+        </div>
+
+    </main>
+
+    <!-- Modal: Import from Viber / Text / File -->
+    <div id="importModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center space-x-2">
+                    <i class="fa-brands fa-viber text-purple-600 text-xl"></i>
+                    <span>Импорт графика</span>
+                </h3>
+                <button onclick="closeImportModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Tabs inside Modal -->
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Вариант 1: Вставить текст из Viber / Мессенджера</label>
+                    <textarea id="viberTextInput" rows="5" class="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Вставьте сообщение из чата, например:&#10;2.10: 9.30-22.00&#10;03.10 работа 09:30 - 22:00&#10;6 пт - смена 11.5ч&#10;07.10 с 09:30 до 22:00"></textarea>
+                    <button onclick="parseViberText()" class="mt-2 w-full bg-purple-600 hover:bg-purple-700 text-white font-medium text-xs py-2.5 rounded-xl transition shadow">
+                        Распознать текст Viber
+                    </button>
+                </div>
+
+                <div class="border-t pt-4">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Вариант 2: Загрузить файл Excel (.xlsx / .csv)</label>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"/>
+                </div>
+            </div>
+
+            <div class="border-t pt-3 flex justify-end">
+                <button onclick="closeImportModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Auto Generator (2/2, 3/1) -->
+    <div id="generateModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center space-x-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+                    <span>Заполнить по шаблону</span>
+                </h3>
+                <button onclick="closeGenerateModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Схема работы:</label>
+                    <select id="genPattern" class="w-full text-sm border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="2-2">2 через 2 (2 работы / 2 выходных)</option>
+                        <option value="3-1">3 через 1 (3 работы / 1 выходной)</option>
+                        <option value="5-2">5 через 2 (5 работ / 2 выходных)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Первый день месяца (1-е число):</label>
+                    <select id="genFirstDayState" class="w-full text-sm border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="work">Рабочая смена</option>
+                        <option value="off">Выходной день</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Время начала:</label>
+                        <input type="time" id="genStartTime" value="09:30" class="w-full text-sm border border-slate-300 rounded-xl p-2 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Время конца:</label>
+                        <input type="time" id="genEndTime" value="22:00" class="w-full text-sm border border-slate-300 rounded-xl p-2 outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t pt-3 flex justify-end space-x-2">
+                <button onclick="closeGenerateModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+                    Отмена
+                </button>
+                <button onclick="applyAutoPattern()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition shadow">
+                    Применить к месяцу
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Single Day -->
+    <div id="editDayModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-base text-slate-800" id="editDayTitle">Редактирование дня</h3>
+                <button onclick="closeEditDayModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="editDayForm" onsubmit="saveDayEdit(event)" class="space-y-3">
+                <input type="hidden" id="editDayIndex">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Тип дня:</label>
+                    <select id="editIsWork" onchange="toggleEditTimes()" class="w-full text-sm border border-slate-300 rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+                        <option value="true">Рабочая смена</option>
+                        <option value="false">Выходной</option>
+                    </select>
+                </div>
+                <div id="editTimeFields" class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Начало:</label>
+                        <input type="text" id="editStart" class="w-full text-sm border border-slate-300 rounded-xl p-2 outline-none" placeholder="09:30">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Конец:</label>
+                        <input type="text" id="editEnd" class="w-full text-sm border border-slate-300 rounded-xl p-2 outline-none" placeholder="22:00">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Часов за смену:</label>
+                    <input type="number" step="0.5" id="editHours" class="w-full text-sm border border-slate-300 rounded-xl p-2 outline-none" placeholder="11.5">
+                </div>
+
+                <div class="border-t pt-3 flex justify-end space-x-2">
+                    <button type="button" onclick="closeEditDayModal()" class="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl">
+                        Отмена
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl shadow">
+                        Сохранить
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Default Template for Oct 2026 (From baseline image)
+        const october2026Base = [
+            { day: 1, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 2, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 3, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 4, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 5, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 6, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 7, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 8, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 9, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 10, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 11, start: '09:00', end: '21:00', hours: 11.0, isWork: true },
+            { day: 12, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 13, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 14, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 15, start: '11:00', end: '21:00', hours: 9.0, isWork: true },
+            { day: 16, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 17, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 18, start: '09:00', end: '21:00', hours: 11.0, isWork: true },
+            { day: 19, start: '09:00', end: '21:00', hours: 11.0, isWork: true },
+            { day: 20, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 21, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 22, start: '09:30', end: '21:00', hours: 10.5, isWork: true },
+            { day: 23, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 24, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 25, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 26, start: '09:00', end: '21:00', hours: 11.0, isWork: true },
+            { day: 27, start: '09:30', end: '22:00', hours: 11.5, isWork: true },
+            { day: 28, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 29, start: '—', end: '—', hours: 0, isWork: false },
+            { day: 30, start: '09:30', end: '22:00', hours: 11.5, isWork: true }
+        ];
+
+        const daysOfWeekNames = ["ВС", "ПН", "ВТ", "СР", "ЧТ", "ПТ", "СБ"];
+
+        let currentYear = 2026;
+        let currentMonth = 9; // 9 = October (0-indexed)
+        let currentFilter = 'all';
+        let monthData = [];
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            initYearSelector();
+            loadMonthData(currentYear, currentMonth);
+            setupExcelListener();
+        });
+
+        function initYearSelector() {
+            const select = document.getElementById('yearSelect');
+            select.innerHTML = '';
+            for (let y = 2024; y <= 2030; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                select.appendChild(opt);
+            }
+            document.getElementById('monthSelect').value = currentMonth;
+        }
+
+        function getStorageKey(year, month) {
+            return `schedule_kleshchenko_${year}_${month}`;
+        }
+
+        function loadMonthData(year, month) {
+            const key = getStorageKey(year, month);
+            const saved = localStorage.getItem(key);
+
+            if (saved) {
+                monthData = JSON.parse(saved);
+            } else if (year === 2026 && month === 9) {
+                // Default Oct 2026
+                monthData = october2026Base.map(item => ({...item}));
+                saveCurrentMonthData();
+            } else {
+                // Generate blank month
+                monthData = generateBlankMonth(year, month);
+                saveCurrentMonthData();
+            }
+
+            renderSchedule();
+        }
+
+        function saveCurrentMonthData() {
+            const key = getStorageKey(currentYear, currentMonth);
+            localStorage.setItem(key, JSON.stringify(monthData));
+        }
+
+        function generateBlankMonth(year, month) {
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const list = [];
+            for (let d = 1; d <= daysInMonth; d++) {
+                list.push({
+                    day: d,
+                    start: '—',
+                    end: '—',
+                    hours: 0,
+                    isWork: false
+                });
+            }
+            return list;
+        }
+
+        function onDateSelectorChange() {
+            currentYear = parseInt(document.getElementById('yearSelect').value);
+            currentMonth = parseInt(document.getElementById('monthSelect').value);
+            loadMonthData(currentYear, currentMonth);
+        }
+
+        function changeMonth(delta) {
+            let m = currentMonth + delta;
+            let y = currentYear;
+            if (m < 0) {
+                m = 11;
+                y -= 1;
+            } else if (m > 11) {
+                m = 0;
+                y += 1;
+            }
+            currentYear = y;
+            currentMonth = m;
+            document.getElementById('yearSelect').value = currentYear;
+            document.getElementById('monthSelect').value = currentMonth;
+            loadMonthData(currentYear, currentMonth);
+        }
+
+        function resetCurrentMonth() {
+            if (confirm("Вы уверены, что хотите сбросить текущий месяц?")) {
+                localStorage.removeItem(getStorageKey(currentYear, currentMonth));
+                loadMonthData(currentYear, currentMonth);
+            }
+        }
+
+        function renderSchedule() {
+            const container = document.getElementById('scheduleContainer');
+            container.innerHTML = '';
+
+            let totalHours = 0;
+            let workDays = 0;
+            let offDays = 0;
+
+            const filtered = monthData.filter(item => {
+                if (currentFilter === 'work') return item.isWork;
+                if (currentFilter === 'off') return !item.isWork;
+                return true;
+            });
+
+            // Calculate totals for full month
+            monthData.forEach(item => {
+                if (item.isWork) {
+                    totalHours += parseFloat(item.hours || 0);
+                    workDays++;
+                } else {
+                    offDays++;
+                }
+            });
+
+            document.getElementById('statTotalHours').innerHTML = `${totalHours.toFixed(1)} <span class="text-xs font-normal">ч</span>`;
+            document.getElementById('statWorkDays').textContent = workDays;
+            document.getElementById('statOffDays').textContent = offDays;
+
+            filtered.forEach((item) => {
+                const dateObj = new Date(currentYear, currentMonth, item.day);
+                const dayOfWeekIndex = dateObj.getDay();
+                const dayOfWeekName = daysOfWeekNames[dayOfWeekIndex];
+                const isWeekendDay = (dayOfWeekIndex === 0 || dayOfWeekIndex === 6);
+
+                const card = document.createElement('div');
+                card.onclick = () => openEditDayModal(item.day - 1);
+                card.className = `p-3.5 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
+                    item.isWork 
+                        ? 'bg-white border-emerald-200/80 shadow-sm hover:border-indigo-400' 
+                        : 'bg-slate-50/70 border-slate-200/60 opacity-80 hover:opacity-100 hover:border-slate-300'
+                }`;
+
+                const badgeBg = isWeekendDay ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700';
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3.5">
+                        <div class="text-center w-12 py-1.5 px-2 rounded-xl ${badgeBg}">
+                            <span class="block text-[10px] font-extrabold leading-tight tracking-wider uppercase">${dayOfWeekName}</span>
+                            <span class="block text-base font-black leading-tight">${item.day < 10 ? '0' + item.day : item.day}</span>
+                        </div>
+                        <div>
+                            ${item.isWork 
+                                ? `<p class="text-sm font-bold text-slate-800">
+                                     <i class="fa-regular fa-clock text-emerald-500 mr-1.5"></i>${item.start} — ${item.end}
+                                   </p>
+                                   <p class="text-xs text-slate-400 font-medium">Рабочая смена</p>`
+                                : `<p class="text-sm font-semibold text-slate-400">
+                                     <i class="fa-solid fa-mug-hot text-amber-400/80 mr-1.5"></i>Выходной
+                                   </p>`
+                            }
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        ${item.isWork 
+                            ? `<span class="bg-emerald-50 text-emerald-700 text-xs font-extrabold px-3 py-1.5 rounded-xl border border-emerald-200/60">
+                                 +${item.hours} ч
+                               </span>`
+                            : `<span class="text-xs text-slate-400 font-medium px-2">0 ч</span>`
+                        }
+                        <i class="fa-solid fa-pen text-slate-300 text-xs"></i>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function setFilter(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'filter-btn flex-1 py-2 text-xs font-semibold rounded-xl bg-white text-slate-600 border border-slate-200';
+            });
+            document.getElementById(`btn-filter-${type}`).className = 'filter-btn flex-1 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white shadow';
+            renderSchedule();
+        }
+
+        // --- Modals logic ---
+        function openImportModal() { document.getElementById('importModal').classList.remove('hidden'); }
+        function closeImportModal() { document.getElementById('importModal').classList.add('hidden'); }
+
+        function openGenerateModal() { document.getElementById('generateModal').classList.remove('hidden'); }
+        function closeGenerateModal() { document.getElementById('generateModal').classList.add('hidden'); }
+
+        function openEditDayModal(index) {
+            const item = monthData[index];
+            document.getElementById('editDayIndex').value = index;
+            document.getElementById('editDayTitle').textContent = `День ${item.day} (${daysOfWeekNames[new Date(currentYear, currentMonth, item.day).getDay()]})`;
+            document.getElementById('editIsWork').value = item.isWork ? "true" : "false";
+            document.getElementById('editStart').value = item.isWork ? item.start : "09:30";
+            document.getElementById('editEnd').value = item.isWork ? item.end : "22:00";
+            document.getElementById('editHours').value = item.hours || 0;
+            
+            toggleEditTimes();
+            document.getElementById('editDayModal').classList.remove('hidden');
+        }
+        function closeEditDayModal() { document.getElementById('editDayModal').classList.add('hidden'); }
+
+        function toggleEditTimes() {
+            const isWork = document.getElementById('editIsWork').value === "true";
+            const fields = document.getElementById('editTimeFields');
+            if(isWork) {
+                fields.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                fields.classList.add('opacity-40', 'pointer-events-none');
+                document.getElementById('editHours').value = 0;
+            }
+        }
+
+        function saveDayEdit(e) {
+            e.preventDefault();
+            const idx = parseInt(document.getElementById('editDayIndex').value);
+            const isWork = document.getElementById('editIsWork').value === "true";
+            const start = document.getElementById('editStart').value.trim();
+            const end = document.getElementById('editEnd').value.trim();
+            const hours = parseFloat(document.getElementById('editHours').value) || 0;
+
+            monthData[idx].isWork = isWork;
+            monthData[idx].start = isWork ? start : '—';
+            monthData[idx].end = isWork ? end : '—';
+            monthData[idx].hours = isWork ? hours : 0;
+
+            saveCurrentMonthData();
+            renderSchedule();
+            closeEditDayModal();
+        }
+
+        // --- Auto Generator (2/2, 3/1) ---
+        function applyAutoPattern() {
+            const pattern = document.getElementById('genPattern').value;
+            const firstState = document.getElementById('genFirstDayState').value;
+            const startTime = document.getElementById('genStartTime').value;
+            const endTime = document.getElementById('genEndTime').value;
+
+            // Calculate hours automatically
+            let h = 11.5;
+            if (startTime && endTime) {
+                const [sh, sm] = startTime.split(':').map(Number);
+                const [eh, em] = endTime.split(':').map(Number);
+                let diff = (eh + em/60) - (sh + sm/60);
+                if (diff < 0) diff += 24;
+                h = Math.max(0, diff - 1); // -1 hour lunch default
+            }
+
+            let workSeq = 2, offSeq = 2;
+            if (pattern === '3-1') { workSeq = 3; offSeq = 1; }
+            if (pattern === '5-2') { workSeq = 5; offSeq = 2; }
+
+            let isWorkState = (firstState === 'work');
+            let counter = 0;
+
+            monthData.forEach(item => {
+                if (isWorkState) {
+                    item.isWork = true;
+                    item.start = startTime;
+                    item.end = endTime;
+                    item.hours = parseFloat(h.toFixed(1));
+                    counter++;
+                    if (counter >= workSeq) {
+                        isWorkState = false;
+                        counter = 0;
+                    }
+                } else {
+                    item.isWork = false;
+                    item.start = '—';
+                    item.end = '—';
+                    item.hours = 0;
+                    counter++;
+                    if (counter >= offSeq) {
+                        isWorkState = true;
+                        counter = 0;
+                    }
+                }
+            });
+
+            saveCurrentMonthData();
+            renderSchedule();
+            closeGenerateModal();
+        }
+
+        // --- Parser Viber Message Text ---
+        function parseViberText() {
+            const rawText = document.getElementById('viberTextInput').value;
+            if (!rawText.trim()) return;
+
+            const lines = rawText.split('\n');
+            let updatedCount = 0;
+
+            lines.forEach(line => {
+                // Match dates like 02.10, 2-го, 2 число, 02
+                const dayMatch = line.match(/(?:^|\s|\b)(\d{1,2})(?:\.|\b)/);
+                if (dayMatch) {
+                    const dayNum = parseInt(dayMatch[1]);
+                    if (dayNum >= 1 && dayNum <= monthData.length) {
+                        const target = monthData[dayNum - 1];
+
+                        // Match work hours like 09:30-22:00 or 9.30 - 22.00
+                        const timeMatch = line.match(/(\d{1,2}[:\.]\d{2})\s*[-—до]\s*(\d{1,2}[:\.]\d{2})/i);
+                        // Match hours count like 11.5ч
+                        const hoursMatch = line.match(/(\d{1,2}(?:[\.,]\d)?)\s*(?:ч|час)/i);
+
+                        if (line.toLowerCase().includes('выходн') || line.toLowerCase().includes(' вых')) {
+                            target.isWork = false;
+                            target.start = '—';
+                            target.end = '—';
+                            target.hours = 0;
+                        } else if (timeMatch || hoursMatch || line.toLowerCase().includes('смена') || line.toLowerCase().includes('работ')) {
+                            target.isWork = true;
+                            if (timeMatch) {
+                                target.start = timeMatch[1].replace('.', ':');
+                                target.end = timeMatch[2].replace('.', ':');
+                            } else {
+                                target.start = '09:30';
+                                target.end = '22:00';
+                            }
+                            if (hoursMatch) {
+                                target.hours = parseFloat(hoursMatch[1].replace(',', '.'));
+                            } else {
+                                target.hours = 11.5;
+                            }
+                        }
+                        updatedCount++;
+                    }
+                }
+            });
+
+            saveCurrentMonthData();
+            renderSchedule();
+            closeImportModal();
+            alert(`Успешно обработано строк: ${updatedCount}`);
+        }
+
+        // --- Excel File Reader ---
+        function setupExcelListener() {
+            document.getElementById('excelFileInput').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+
+                    let count = 0;
+                    json.forEach(row => {
+                        if (Array.isArray(row)) {
+                            row.forEach((cell, idx) => {
+                                const val = String(cell).trim();
+                                if (/^\d{1,2}$/.test(val)) {
+                                    const d = parseInt(val);
+                                    if (d >= 1 && d <= monthData.length) {
+                                        // Simple logic: if next cells contain time
+                                        const nextCell = String(row[idx+1] || '');
+                                        if (nextCell.includes(':') || nextCell.includes('-')) {
+                                            monthData[d-1].isWork = true;
+                                            monthData[d-1].hours = 11.5;
+                                            count++;
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    saveCurrentMonthData();
+                    renderSchedule();
+                    closeImportModal();
+                    alert(`Импортировано из Excel! Обновлено дней: ${count}`);
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+    </script>
+</body>
+</html>
